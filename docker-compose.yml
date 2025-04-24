@@ -1,0 +1,142 @@
+# Specify the minimum Compose version that supports 'develop' and 'watch'
+# version: '3.10' # Or a version >= v2.17.0 of the Docker Compose CLI binary
+
+# Define the project name (optional but good practice)
+name: my-react-node-mysql-app
+
+services:
+  db:
+    image: mysql
+    restart: unless-stopped # Added restart policy
+    cap_add:
+      - SYS_NICE
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Initial setup script - watch isn't needed here as it only runs once
+      - ./api-server/db-setup.sql:/docker-entrypoint-initdb.d/setup.sql
+    ports:
+      - "9906:3306"
+    env_file: # Added env_file directive
+      - ./.env # Assumes .env file is in the same directory
+    environment:
+      # Variables like MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, MYSQL_ROOT_PASSWORD
+      # will be loaded from the .env file.
+      # MYSQL_HOST is typically not needed here as the service name 'db' is used internally.
+      MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PASSWORD # Still needed directly if not in .env or for clarity
+    networks: # Added network assignment
+      - app-network
+
+  nginx:
+    depends_on:
+      - api
+      - ui
+    restart: unless-stopped # Added restart policy
+    build:
+      dockerfile: Dockerfile
+      context: ./nginx
+    ports:
+      - "8008:80"
+    develop:
+      watch:
+        # Rebuild the nginx image if Dockerfile or config files change
+        - path: ./nginx
+          action: rebuild
+    networks: # Added network assignment
+      - app-network
+
+  api:
+    build:
+      context: ./api-server
+      target: dev # Assumes 'dev' target handles dev dependencies
+    depends_on:
+      - db
+    restart: unless-stopped # Added restart policy
+    # Volume for node_modules is kept to persist dependencies between rebuilds
+    volumes:
+      - ./api-server:/src # Mount source code directly for sync
+      - /src/node_modules # Keep node_modules separate
+    command: npm run start:dev # Assumes this command uses nodemon or similar for hot-reloading
+    ports:
+      - $API_PORT:$API_PORT
+    env_file: # Added env_file directive
+      - ./.env # Assumes .env file is in the same directory
+    environment:
+      # Common variables like MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST
+      # will be loaded from the .env file.
+      MYSQL_HOST: db # Explicitly set the host to the service name
+      PORT: $API_PORT # Keep port definition if it comes from .env
+      NODE_ENV: development
+    develop:
+      watch:
+        # If package.json or lock file changes, rebuild the image
+        - path: ./api-server/package.json
+          action: rebuild
+        - path: ./api-server/package-lock.json
+          action: rebuild
+        # For other changes in the source directory (excluding node_modules),
+        # sync the changes into the container. The running 'start:dev'
+        # command (e.g., nodemon) should pick up these changes.
+        - path: ./api-server
+          target: /src
+          action: sync
+          ignore: # Don't trigger sync/rebuild for node_modules changes
+            - node_modules/
+    networks: # Added network assignment
+      - app-network
+
+  ui:
+    stdin_open: true # Often needed for React dev servers
+    restart: unless-stopped # Added restart policy
+    environment:
+      # CHOKIDAR_USEPOLLING might still be needed depending on the OS/filesystem
+      - CHOKIDAR_USEPOLLING=true
+      # You might load CLIENT_PORT from .env here too if needed
+      # Example: PORT: $CLIENT_PORT (if React uses PORT env var)
+    env_file: # Optionally add env_file if ui needs env vars
+      - ./.env
+    build:
+      context: ./blog-ui
+    # Volume for node_modules is kept to persist dependencies between rebuilds
+    volumes:
+      - ./blog-ui:/src # Mount source code directly for sync
+      - /src/node_modules # Keep node_modules separate
+    ports:
+      - $CLIENT_PORT:$CLIENT_PORT # Ensure CLIENT_PORT is defined in .env
+    develop:
+      watch:
+        # If package.json or lock file changes, rebuild the image
+        - path: ./blog-ui/package.json
+          action: rebuild
+        - path: ./blog-ui/package-lock.json
+          action: rebuild
+        # For other changes in the source directory (excluding node_modules),
+        # sync the changes into the container. The React dev server
+        # should pick up these changes.
+        - path: ./blog-ui
+          target: /src
+          action: sync
+          ignore: # Don't trigger sync/rebuild for node_modules changes
+            - node_modules/
+    networks: # Added network assignment
+      - app-network
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped # Already had restart policy
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+    environment:
+      ADMINER_DEFAULT_SERVER: db # Use the service name 'db'
+    networks: # Added network assignment
+      - app-network
+
+# Define the custom network
+networks:
+  app-network:
+    driver: bridge
+
+# Define named volumes
+volumes:
+  mysql_data:
