@@ -60,7 +60,7 @@ const App = () => {
 
   return (
     <div className="app">
-      <h1>Welcome to our KSSK blog!</h1>
+      <h1>Welcome to our very first blog!</h1>
       <p>We've been waiting for you!</p>
       <div className="post-container">
         <section className="posts">
