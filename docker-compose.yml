@@ -26,22 +26,26 @@ services:
     networks: # Added network assignment
       - app-network
 
-  nginx:
+  caddy:
     depends_on:
       - api
       - ui
-    restart: unless-stopped # Added restart policy
+    restart: unless-stopped
     build:
       dockerfile: Dockerfile
-      context: ./nginx
+      context: ./caddy
     ports:
-      - "8008:80"
+      - "8008:8008"
+      - "443:443" # Required for HTTPS
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
     develop:
       watch:
-        # Rebuild the nginx image if Dockerfile or config files change
-        - path: ./nginx
+        # Rebuild the caddy image if Dockerfile or config files change
+        - path: ./caddy
           action: rebuild
-    networks: # Added network assignment
+    networks:
       - app-network
 
   api:
@@ -140,3 +144,5 @@ networks:
 # Define named volumes
 volumes:
   mysql_data:
+  caddy_data: # For Caddy's HTTPS certificates and other data
+  caddy_config: # For Caddy configuration
