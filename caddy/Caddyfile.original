@@ -1,0 +1,33 @@
+{
+    # Enable automatic HTTPS with locally-trusted certificates
+    local_certs
+    # Use HTTP/2 (enabled by default in Caddy)
+    # You can also use "auto_https off" if you want to disable HTTPS during development
+}
+
+# Main site configuration
+auth.localhost {
+    # Enable compression
+    # encode gzip
+
+    # UI service
+    handle / {
+        reverse_proxy ui:3000
+    }
+
+    # Handle WebSocket connections for React hot reloading
+    handle /sockjs-node/* {
+        reverse_proxy ui:3000 {
+            header_up Host {host}
+            header_up Origin http://{host}
+            header_up Connection "Upgrade"
+            header_up Upgrade websocket
+        }
+    }
+
+    # API service
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy api:5050
+    }
+}

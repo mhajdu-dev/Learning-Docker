@@ -14,6 +14,11 @@ CMD ["node", "app"]
 
 FROM base as dev
 ENV NODE_ENV=development
+
+# Add this line to install curl
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+
 RUN npm install -g nodemon && npm install
 COPY ./ ./
 CMD ["nodemon", "app"]

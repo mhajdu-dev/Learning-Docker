@@ -36,7 +36,7 @@ services:
       context: ./caddy
     ports:
       - "8008:8008"
-      - "443:443" # Required for HTTPS
+     # - "443:443" # Required for HTTPS
     volumes:
       - caddy_data:/data
       - caddy_config:/config
@@ -60,8 +60,6 @@ services:
       - ./api-server:/src # Mount source code directly for sync
       - /src/node_modules # Keep node_modules separate
     command: npm run start:dev # Assumes this command uses nodemon or similar for hot-reloading
-    ports:
-      - $API_PORT:$API_PORT
     env_file: # Added env_file directive
       - ./.env # Assumes .env file is in the same directory
     environment:
@@ -104,8 +102,6 @@ services:
     volumes:
       - ./blog-ui:/src # Mount source code directly for sync
       - /src/node_modules # Keep node_modules separate
-    ports:
-      - $CLIENT_PORT:$CLIENT_PORT # Ensure CLIENT_PORT is defined in .env
     develop:
       watch:
         # If package.json or lock file changes, rebuild the image

@@ -1,0 +1,1249 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+api-server/
+  routes/
+    posts.js
+  .dockerignore
+  app.js
+  db-setup.sql
+  Dockerfile
+  knexfile.js
+  package.json
+blog-ui/
+  public/
+    index.html
+    manifest.json
+    robots.txt
+  src/
+    App.css
+    App.js
+    index.css
+    index.js
+  .dockerignore
+  .gitignore
+  Dockerfile
+  package.json
+  README.md
+caddy/
+  Caddyfile
+  Dockerfile
+nginx/
+  default.conf
+  Dockerfile
+.env.example
+.gitignore
+docker-compose.yml
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="api-server/routes/posts.js">
+const express = require('express');
+const router = express.Router();
+const knex = require('knex')(require('../knexfile.js').development);
+
+router.get('/', (_req, res) => {
+  knex('posts')
+    .orderBy('id', 'desc')
+    .then(data => {
+      res.status(200).json(data);
+    })
+    .catch(err => {
+      res.status(500).json({ message: 'Error fetching posts' });
+    });
+});
+
+router.post('/', (req, res) => {
+  knex('posts')
+    .insert({
+      title: req.body.title,
+      body: req.body.body
+    })
+    .then(postId => {
+      res.status(201).json({ newPostId: postId[0] });
+    })
+    .catch(() => {
+      res.status(500).json({ message: 'Error creating new post' });
+    });
+});
+
+module.exports = router;
+</file>
+
+<file path="api-server/.dockerignore">
+.git
+node_modules
+</file>
+
+<file path="api-server/app.js">
+const express = require('express');
+const cors = require('cors');
+const app = express();
+const postRoutes = require('./routes/posts');
+
+require('dotenv').config();
+
+const PORT = process.env.PORT || 5050;
+
+app.use(cors());
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }));
+
+app.get('/', (_req, res) => {
+  res.status(200).send('Server is up and running');
+});
+
+app.use('/posts', postRoutes);
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server listening on ${PORT}`);
+});
+</file>
+
+<file path="api-server/db-setup.sql">
+CREATE TABLE IF NOT EXISTS `posts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(150) NOT NULL,
+  `body` text NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+</file>
+
+<file path="api-server/knexfile.js">
+require('dotenv').config();
+
+module.exports = {
+  development: {
+    // Necessary for being able to connect to MySQL container with correct AUTH type
+    client: 'mysql2',
+    connection: {
+      // "db" refers to the name of the service in docker-compose
+      host: 'db',
+      // Environment variables are defined in the api service in docker-compose
+      user: process.env.MYSQL_USER,
+      password: process.env.MYSQL_PASSWORD,
+      database: process.env.MYSQL_DATABASE,
+      charset: 'utf8',
+    }
+  }
+};
+</file>
+
+<file path="api-server/package.json">
+{
+  "name": "api-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app",
+    "start:dev": "nodemon app"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.3",
+    "knex": "^1.0.3",
+    "mysql2": "^2.3.3"
+  }
+}
+</file>
+
+<file path="blog-ui/public/index.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <!--
+      manifest.json provides metadata used when your web app is installed on a
+      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>React App</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+  </body>
+</html>
+</file>
+
+<file path="blog-ui/public/manifest.json">
+{
+  "short_name": "React App",
+  "name": "Create React App Sample",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
+</file>
+
+<file path="blog-ui/public/robots.txt">
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Disallow:
+</file>
+
+<file path="blog-ui/src/App.css">
+.app {
+  max-width: 75rem;
+  margin: 0 auto;
+}
+h1 {
+  color: #426A5A;
+}
+.post-container {
+  display: flex;
+  justify-content: space-between;
+}
+.posts {
+  flex-grow: 1;
+  margin-right: 3rem;
+}
+.post {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #F2C57C;
+}
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.form-input {
+  margin-bottom: 1rem;
+}
+</file>
+
+<file path="blog-ui/src/index.css">
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #DDAE7E;
+  padding: 2rem;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+</file>
+
+<file path="blog-ui/src/index.js">
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+</file>
+
+<file path="blog-ui/.dockerignore">
+.git
+node_modules
+</file>
+
+<file path="blog-ui/.gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+</file>
+
+<file path="blog-ui/package.json">
+{
+  "name": "blog-ui",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.16.2",
+    "@testing-library/react": "^12.1.3",
+    "@testing-library/user-event": "^13.5.0",
+    "axios": "^0.26.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "5.0.0",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
+</file>
+
+<file path="blog-ui/README.md">
+# Getting Started with Create React App
+
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+
+## Available Scripts
+
+In the project directory, you can run:
+
+### `npm start`
+
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+
+The page will reload when you make changes.\
+You may also see any lint errors in the console.
+
+### `npm test`
+
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+
+### `npm run build`
+
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
+
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
+
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+
+### `npm run eject`
+
+**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+
+If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+
+You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+
+## Learn More
+
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+
+To learn React, check out the [React documentation](https://reactjs.org/).
+
+### Code Splitting
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+
+### Analyzing the Bundle Size
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+
+### Making a Progressive Web App
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+
+### Advanced Configuration
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+
+### Deployment
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+
+### `npm run build` fails to minify
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+</file>
+
+<file path="caddy/Caddyfile">
+{
+    # Enable automatic HTTPS with locally-trusted certificates
+    local_certs
+    # Use HTTP/2 (enabled by default in Caddy)
+    # You can also use "auto_https off" if you want to disable HTTPS during development
+}
+
+# Main site configuration
+auth.localhost {
+    # Enable compression
+    encode gzip
+
+    # UI service
+    handle / {
+        reverse_proxy ui:3000
+    }
+
+    # Handle WebSocket connections for React hot reloading
+    handle /sockjs-node/* {
+        reverse_proxy ui:3000 {
+            header_up Host {host}
+            header_up Origin http://{host}
+            header_up Connection "Upgrade"
+            header_up Upgrade websocket
+        }
+    }
+
+    # API service
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy api:5050
+    }
+}
+</file>
+
+<file path="caddy/Dockerfile">
+FROM caddy:2-alpine
+
+# Copy Caddyfile to configuration directory
+COPY ./Caddyfile /etc/caddy/Caddyfile
+</file>
+
+<file path="nginx/default.conf">
+upstream ui {
+  server ui:3000;
+}
+
+upstream api {
+  server api:5050;
+}
+
+server {
+  listen 80;
+
+  location / {
+    proxy_pass http://ui;
+  }
+
+  location /sockjs-node {
+      proxy_pass http://ui;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "Upgrade";
+  }
+  
+  location /api {
+      rewrite /api/(.*) /$1 break;
+      proxy_pass http://api;
+  }
+}
+</file>
+
+<file path="nginx/Dockerfile">
+FROM nginx
+COPY ./default.conf /etc/nginx/conf.d/default.conf
+</file>
+
+<file path=".env.example">
+MYSQL_DATABASE=blog
+MYSQL_USER=MYSQL_USER
+MYSQL_PASSWORD=MYSQL_PASSWORD
+MYSQL_ROOT_PASSWORD=MYSQL_ROOT_PASSWORD
+MYSQL_HOST=localhost
+API_PORT=5050
+CLIENT_PORT=3000
+</file>
+
+<file path=".gitignore">
+npm-debug.log*
+node_modules/
+pids
+*.pid
+*.seed
+*.pid.lock
+.env
+</file>
+
+<file path="README.md">
+# Full-Stack JS Docker Tutorial
+
+## Tutorial Purpose
+
+This tutorial will create a Docker Compose pipeline including React Front End, Express API Backend, NGINX Reverse Proxy Server for React and Express services, MySQL Database and admin interface for MySQL.
+
+This is going to be a development environment with hot-reload of React and Express servers, with potential to be expanded to a production environment.
+
+The repository contains the finished version of the tutorial as well as starter code if you want to follow it step-by-step yourself.
+
+## What is Docker?
+
+Docker is a great way to provide consistent development environments. It allows us to set up required services, app dependencies, and configuration by keeping all of our application setup information in code instead of relying on the know-how or potentially outdated documentation. It also allows us to set up things so that we can develop locally and start our dependencies with one Docker command.
+
+Essentially, using Docker we can "containerize" our applications which will make it behave the same regardless of the platform on which it is run - simplifying development and deployment.
+
+## Docker Installation
+
+Easiest way to install Docker is to use Docker Desktop, which comes as an installer for [Mac](https://docs.docker.com/desktop/install/mac-install/) or [Windows](https://docs.docker.com/desktop/install/windows-install/).
+
+## Dockerfile
+
+Dockerfile is a blueprint on which the Docker image is built. When the built image is running, it is called a container.
+
+Dockerfile usually contains the environment setup for one or several apps, ie: server software, copying app files, installing dependencies, running the app.
+
+Here is the `Dockerfile` for our api-server:
+
+```Dockerfile
+# Using Docker Node Alpine LTS image (skinny version of node)
+# Also specifying a base stage for multi-stage build
+FROM node:16-alpine as base
+
+# Sets the context for subsequent RUN commands
+WORKDIR /src
+# Copy package.json and package-lock.json files 
+COPY package*.json ./
+# Exposing the port on the container
+EXPOSE 5050
+
+# Extends from base stage
+FROM base as production
+# Setting the environment to production to speed up performance of the build
+ENV NODE_ENV=production
+# npm ci installs from package-lock.json for a deterministic build
+RUN npm ci
+# Copy app code to /src, our workdir
+COPY ./ ./
+# Run the server
+CMD ["node", "app"]
+
+# Development specific setup
+FROM base as dev
+ENV NODE_ENV=development
+RUN npm install -g nodemon && npm install
+COPY ./ ./
+CMD ["nodemon", "app"]
+```
+
+## .dockerignore
+
+Similar to `.gitignore` it is advisable to add a `.dockerignore` file when using Docker, which allows us to ignore files we don't want to land in our Docker image. It helps to keep the Docker image small and keep the build cache more efficient.
+
+```dockerignore
+.git
+node_modules
+```
+
+## Running Our Application in Docker
+
+At this point we can run our api-server application as a Docker container.
+
+First we need to build our image:
+
+```
+docker build -t api-server .
+```
+
+> `-t` flag: Name of the container
+
+And then we can run it as a container:
+
+```
+docker run --rm -p 5050:5050 --name blog-api api-server
+```
+
+> `--rm` flag: Clean up the container after it exits
+> `-p` flag: Expose host:container ports
+
+At this point you should be able to see the server if you make a request to http://localhost:5050 as well as see the container running in Docker Desktop.
+
+You will also notice that currently the hot-reload of the server doesn't actually work, and any changes you make would require a re-build and re-run of the container. Next steps will fix that and make things more manageable.
+
+## Docker Compose
+
+By now we have most of the things we need to run our Express app with Docker. But even at this point the commands to run our application are getting long and hard to remember.
+
+Docker comes pre-installed with a tool called Docker Compose which allows us to run multiple containers with more ease by using a couple of simpler CLI commands and leaving the parameters configuration to code.
+
+We start by creating a `docker-compose.yml` file in the root folder with the following contents:
+
+```yaml
+# Current latest version of Docker Compose
+version: '3.8'
+# Specifying services we are using
+services:
+  api:
+    # Build context: api-server directory and dev stage build parameter
+    build:
+      context: ./api-server
+      target: dev
+    # Copy and sync changes from the api-server directory with src on the Docker container, ie: hot reload. Also copy the node_modules to container.
+    volumes:
+      - ./api-server:/src
+      - /src/node_modules
+    # Starting the service
+    command: npm run start:dev
+    # Exposing ports
+    ports:
+      - "5050:5050"
+    # Environment variables
+    environment:
+      NODE_ENV: development
+```
+
+To build our image we run an optimized build using [BuildKit](https://docs.docker.com/develop/develop-images/build_enhancements/). Run this command in the root folder of the project:
+
+```
+COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
+```
+
+And then run our image:
+
+```
+docker-compose up
+```
+
+> If you get `EPERM: operation not permitted, open '/src/package.json'` error on macOS, make sure to go to *Security & Privacy* settings and under *Files and Folders* allow Docker access to a folder your application is in.
+
+## Adding Client Application Container
+
+For our React client application, we'll do the same steps, add a `Dockerfile` in the `blog-ui` folder:
+
+```Dockerfile
+FROM node:16-alpine
+
+WORKDIR /src
+COPY package*.json ./
+EXPOSE 3000
+
+COPY ./ ./
+RUN npm i
+CMD ["npm", "run", "start"]
+```
+
+And a `.dockerignore` file:
+
+```dockerignore
+.git
+node_modules
+```
+
+Quick test before we connect it with our other services (make sure to run this inside of `/blog-ui` folder):
+
+```
+docker build -t blog-ui .
+docker run -it --rm -p 3000:3000 --name blog-ui blog-ui
+```
+
+> `-it` flag: Run as interactive process, allocating a tty for container process
+
+You should be able to see your client application running at `http://localhost:3000`.
+
+## Reverse Proxy Service Container
+
+We are now at a point where we can add React app to Docker Compose file as well and then start connecting to our Express server in React app. With both React and Express apps being Docker containers on the same Docker network, we can technically make a request from React to Express via `http://localhost:5050` since it is going to be a browser request.
+
+One thing important to remember about Docker containers is that they run in isolation, which is a good thing, but can be challenging if we need to connect to other services.
+
+For example we can make a request to our API at `http://localhost:5050` from our React container, because it's a browser request. However for something like DB we will need to use the Docker container name instead and in turn Docker will resolve the correct container IP based on the container name. On the other hand, since React applications run in the browser, we won't be able to use API container name like: `http://api:5050` as there is no DNS resolver for that URL. So it's just important to be aware of the context of how you are trying to connect between the containers.
+
+Even though it can work as is, we will take it a step further by creating an NGINX server container that would act as a reverse proxy server and allow us to access both the ui and the api containers and create the necessary routing between the containers. It also makes front-end requests much cleaner as all we will have to write is `/api/...`. 
+
+Here is what a `default.conf` file inside of `nginx` folder looks like:
+
+```nginx
+# ui app upstream
+upstream ui {
+  server ui:3000;
+}
+
+# api app upstream
+upstream api {
+  server api:5050;
+}
+
+server {
+  listen 80;
+
+  location / {
+    # ui is the name of the ui service we will configure in docker-compose
+    proxy_pass http://ui;
+  }
+
+  # for the ui to make the web sockets connection 
+  location /sockjs-node {
+      proxy_pass http://ui;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "Upgrade";
+  }
+  
+  # this is what will allow us to use /api/... URLs in our React app
+  location /api {
+      # /api/anything will redirect to the parameter /$1, which is our endpoint, ie: /posts
+      rewrite /api/(.*) /$1 break;
+      # api is the name of the api service we will configure in docker-compose
+      proxy_pass http://api;
+  }
+}
+```
+
+Here is what `nginx` `Dockerfile` looks like:
+
+```Dockerfile
+FROM nginx
+COPY ./default.conf /etc/nginx/conf.d/default.conf
+```
+
+## Final Docker Compose Config
+
+With Express API, React and NGINX containers done, we can update `docker-compose.yml` to a final version that pulls everything together, and also adds a MySQL DB:
+
+```yaml
+version: '3.8'
+
+# Common variables used for MySQL connection
+# Get the values from .env file, automatically loaded by Docker
+x-common-variables: &common-variables
+  MYSQL_DATABASE: $MYSQL_DATABASE
+  MYSQL_USER: $MYSQL_USER
+  MYSQL_PASSWORD: $MYSQL_PASSWORD
+
+services:
+  # MySQL Database Service
+  db:
+    image: mysql
+    restart: always
+    cap_add:
+      - SYS_NICE
+    volumes:
+      # Data persistence volume that allows to persist the data between container restarts
+      - mysql_data:/var/lib/mysql
+      # Initial setup volume that allows us to do initial DB setup from ./api-server/db-setup.sql
+      - ./api-server/db-setup.sql:/docker-entrypoint-initdb.d/setup.sql
+    ports:
+      # Expose 3306 from container as 9906 externally
+      - "9906:3306"
+    environment:
+      # Include the common variables
+      <<: *common-variables
+      MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PASSWORD
+      MYSQL_HOST: $MYSQL_HOST
+
+  nginx:
+    # Starts services in dependency order
+    depends_on:
+      - api
+      - ui
+    restart: always
+    build:
+      dockerfile: Dockerfile
+      context: ./nginx
+    ports:
+      # Expose 80 from container as 8008 externally
+      - "8008:80"
+
+  api:
+    build:
+      context: ./api-server
+      target: dev
+    depends_on:
+      - db
+    volumes:
+      - ./api-server:/src
+      - /src/node_modules
+    command: npm run start:dev
+    ports:
+      - $API_PORT:$API_PORT
+    environment:
+      <<: *common-variables
+      PORT: $API_PORT
+      NODE_ENV: development
+  
+  ui:
+    stdin_open: true
+    # Fix for hot reload for React apps inside of containers
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    build:
+      context: ./blog-ui
+    volumes:
+      - ./blog-ui:/src
+      - /src/node_modules
+    ports:
+      - $CLIENT_PORT:$CLIENT_PORT
+  
+  # An admin interface for MySQL DB
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+
+# Data Persistence volumes
+volumes:
+  mysql_data:
+```
+
+We should also update both `api-server` and `blog-ui` Dockerfiles to include environment variables (ensuring that they are provided via `.env` file or as parameters to `docker-compose`).
+
+For `api-server`, instead of `EXPOSE 5050` we can provide:
+
+```Dockerfile
+# Argument will be passed from docker-compose (or CLI command)
+ARG API_PORT
+ENV PORT=${API_PORT}
+EXPOSE ${API_PORT}
+```
+
+For `blog-ui`, instead of `EXPOSE 3000` we can provide:
+
+```Dockerfile
+ARG CLIENT_PORT
+ENV PORT=${CLIENT_PORT}
+EXPOSE ${CLIENT_PORT}
+```
+
+Make sure that you create an `.env` file with the values from `.env.example` file.
+
+With these changes we can start the whole environment back by re-building and starting it:
+
+```
+COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
+docker-compose up
+```
+
+You should see in Docker Desktop an application with 5 services running, but if there are any errors, feel free to click on those and you'll be able to see the logs.
+
+Here are all the services that we can test:
+
+- `http://localhost:3000` is the React client
+- `http://localhost:5050` is the Express API
+- `http://localhost:8008` is the client proxied from NGINX server
+- `http://localhost:8080` is the Adminer MySQL admin interface
+  - *Server*: "db" 
+  - *Username*: "MYSQL_USER"
+  - *Password*: "MYSQL_PASSWORD"
+
+Any changes made inside of `/api-server` and `/blog-ui` folders will be automatically updated.
+
+## Data Persistence
+
+By default the files created inside a container will not persist when that container no longer exists and it can be difficult to get the data out of the container for another process.
+
+To persist data for Docker containers we have two options: *volumes* and *bind mounts*.
+
+The preferred way majority of the time is to create a volume which can be done using `docker volume create` command or during container creation. Volumes are stored on the host machine and can then be mounted into containers. Volumes can be **named** or **anonymous**.
+
+There are many [good use cases](https://docs.docker.com/storage/#good-use-cases-for-volumes) for volumes but generally they are used for data persistence, Databases being one of the use cases.
+
+We can see an example of using volumes in our `docker-compose` file, that allows us to persist the data in our MySQL DB (named `mysql_data`).
+
+## Shutting Down
+
+To remove the application you can either use Docker Desktop up or run this command:
+
+```
+docker compose down
+```
+
+## Next Steps
+
+- Creating a production version of containers for all services
+
+## Additional Resources
+
+- [Build and Dockerize a Full-stack React app with Node.js, MySQL and Nginx](https://www.section.io/engineering-education/build-and-dockerize-a-full-stack-react-app-with-nodejs-and-nginx/)
+- [Use Node.js with Docker and Docker Compose to improve DX](https://blog.logrocket.com/node-js-docker-improve-dx/)
+- [Docker Compose: React, Node.js, MySQL example](https://www.bezkoder.com/docker-compose-react-nodejs-mysql/)
+- [How To Setup Your Local Node.js Development Environment Using Docker](https://www.docker.com/blog/how-to-setup-your-local-node-js-development-environment-using-docker/)
+</file>
+
+<file path="api-server/Dockerfile">
+FROM node:22-bookworm-slim as base
+
+WORKDIR /src
+COPY package*.json ./
+ARG API_PORT
+ENV PORT=${API_PORT}
+EXPOSE ${API_PORT}
+
+FROM base as production
+ENV NODE_ENV=production
+RUN npm ci
+COPY ./ ./
+CMD ["node", "app"]
+
+FROM base as dev
+ENV NODE_ENV=development
+RUN npm install -g nodemon && npm install
+COPY ./ ./
+CMD ["nodemon", "app"]
+</file>
+
+<file path="blog-ui/src/App.js">
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import './App.css';
+
+const Post = ({ post }) => {
+  return (
+    <article className="post">
+      <h2>{post.title}</h2>
+      <p>{post.body}</p>
+    </article>
+  )
+}
+
+const CreatePost = ({ onPost }) => {
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    axios
+      .post('/api/posts', {
+        title: e.target.title.value,
+        body: e.target.body.value
+      })
+      .then(() => {
+        onPost();
+        e.target.reset();
+      });
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="form-input">
+        <label htmlFor="title">Title:</label>
+        <input type="text" id="title" name="title" />
+      </div>
+      <div className="form-input">
+        <label htmlFor="body">Text:</label>
+        <textarea id="body" name="body" />
+      </div>
+      <div>
+        <button type="submit">Create New Post</button>
+      </div>
+    </form>
+  )
+}
+
+const App = () => {
+  const [posts, setPosts] = useState([]);
+
+  const fetchPosts = () => {
+    axios
+      .get('/api/posts')
+      .then(res => {
+        setPosts(res.data);
+      });
+  }
+
+  useEffect(() => {
+    fetchPosts();
+  }, [])
+
+  return (
+    <div className="app">
+      <h1>Welcome to our very first blog!</h1>
+      <p>We've been waiting for you!</p>
+      <div className="post-container">
+        <section className="posts">
+          {!posts.length && <p>No posts yet, why don't create new one!</p>}
+          {posts.map(post => {
+            return (
+              <Post key={post.id} post={post}/>
+            )
+          })}
+        </section>
+        <CreatePost onPost={fetchPosts}/>
+      </div>
+    </div>
+  );
+}
+
+export default App;
+</file>
+
+<file path="blog-ui/Dockerfile">
+FROM node:22-bookworm-slim
+
+WORKDIR /src
+COPY package*.json ./
+ARG CLIENT_PORT
+ENV PORT=${CLIENT_PORT}
+EXPOSE ${CLIENT_PORT}
+
+COPY ./ ./
+RUN npm i
+CMD ["npm", "run", "start"]
+</file>
+
+<file path="docker-compose.yml">
+# Specify the minimum Compose version that supports 'develop' and 'watch'
+# version: '3.10' # Or a version >= v2.17.0 of the Docker Compose CLI binary
+
+# Define the project name (optional but good practice)
+name: my-react-node-mysql-app
+
+services:
+  db:
+    image: mysql
+    restart: unless-stopped # Added restart policy
+    cap_add:
+      - SYS_NICE
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Initial setup script - watch isn't needed here as it only runs once
+      - ./api-server/db-setup.sql:/docker-entrypoint-initdb.d/setup.sql
+    ports:
+      - "9906:3306"
+    env_file: # Added env_file directive
+      - ./.env # Assumes .env file is in the same directory
+    environment:
+      # Variables like MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, MYSQL_ROOT_PASSWORD
+      # will be loaded from the .env file.
+      # MYSQL_HOST is typically not needed here as the service name 'db' is used internally.
+      MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PASSWORD # Still needed directly if not in .env or for clarity
+    networks: # Added network assignment
+      - app-network
+
+  caddy:
+    depends_on:
+      - api
+      - ui
+    restart: unless-stopped
+    build:
+      dockerfile: Dockerfile
+      context: ./caddy
+    ports:
+      - "8008:8008"
+      - "443:443" # Required for HTTPS
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    develop:
+      watch:
+        # Rebuild the caddy image if Dockerfile or config files change
+        - path: ./caddy
+          action: rebuild
+    networks:
+      - app-network
+
+  api:
+    build:
+      context: ./api-server
+      target: dev # Assumes 'dev' target handles dev dependencies
+    depends_on:
+      - db
+    restart: unless-stopped # Added restart policy
+    # Volume for node_modules is kept to persist dependencies between rebuilds
+    volumes:
+      - ./api-server:/src # Mount source code directly for sync
+      - /src/node_modules # Keep node_modules separate
+    command: npm run start:dev # Assumes this command uses nodemon or similar for hot-reloading
+    env_file: # Added env_file directive
+      - ./.env # Assumes .env file is in the same directory
+    environment:
+      # Common variables like MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, MYSQL_HOST
+      # will be loaded from the .env file.
+      MYSQL_HOST: db # Explicitly set the host to the service name
+      PORT: $API_PORT # Keep port definition if it comes from .env
+      NODE_ENV: development
+    develop:
+      watch:
+        # If package.json or lock file changes, rebuild the image
+        - path: ./api-server/package.json
+          action: rebuild
+        - path: ./api-server/package-lock.json
+          action: rebuild
+        # For other changes in the source directory (excluding node_modules),
+        # sync the changes into the container. The running 'start:dev'
+        # command (e.g., nodemon) should pick up these changes.
+        - path: ./api-server
+          target: /src
+          action: sync
+          ignore: # Don't trigger sync/rebuild for node_modules changes
+            - node_modules/
+    networks: # Added network assignment
+      - app-network
+
+  ui:
+    stdin_open: true # Often needed for React dev servers
+    restart: unless-stopped # Added restart policy
+    environment:
+      # CHOKIDAR_USEPOLLING might still be needed depending on the OS/filesystem
+      - CHOKIDAR_USEPOLLING=true
+      # You might load CLIENT_PORT from .env here too if needed
+      # Example: PORT: $CLIENT_PORT (if React uses PORT env var)
+    env_file: # Optionally add env_file if ui needs env vars
+      - ./.env
+    build:
+      context: ./blog-ui
+    # Volume for node_modules is kept to persist dependencies between rebuilds
+    volumes:
+      - ./blog-ui:/src # Mount source code directly for sync
+      - /src/node_modules # Keep node_modules separate
+    develop:
+      watch:
+        # If package.json or lock file changes, rebuild the image
+        - path: ./blog-ui/package.json
+          action: rebuild
+        - path: ./blog-ui/package-lock.json
+          action: rebuild
+        # For other changes in the source directory (excluding node_modules),
+        # sync the changes into the container. The React dev server
+        # should pick up these changes.
+        - path: ./blog-ui
+          target: /src
+          action: sync
+          ignore: # Don't trigger sync/rebuild for node_modules changes
+            - node_modules/
+    networks: # Added network assignment
+      - app-network
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped # Already had restart policy
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+    environment:
+      ADMINER_DEFAULT_SERVER: db # Use the service name 'db'
+    networks: # Added network assignment
+      - app-network
+
+# Define the custom network
+networks:
+  app-network:
+    driver: bridge
+
+# Define named volumes
+volumes:
+  mysql_data:
+  caddy_data: # For Caddy's HTTPS certificates and other data
+  caddy_config: # For Caddy configuration
+</file>
+
+</files>
